@@ -5,8 +5,8 @@ WORKDIR /app
 COPY requirements.txt ./
 COPY docker-entrypoint.sh /
 
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install -i https://test.pypi.org/simple/ inky==1.3.2
+RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install -i https://test.pypi.org/simple/ inky==1.3.2
 
 COPY . .
 

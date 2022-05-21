@@ -4,21 +4,24 @@ import os
 import json
 import time
 import uuid
+import base64
 import qrcode
 
+from string import Template
 from paho.mqtt import client as mqtt_client
 # Inky
 from inky.auto import auto
 from PIL import Image
 from inky.inky_uc8159 import Inky, CLEAN
 
+url = os.environ['URL']
 broker = os.environ['BROKER']
 port = 1883
 # generate client ID with pub prefix randomly
 client_id = 'python-mqtt'
 username = os.environ['USERNAME']
 password = os.environ['PASSWORD']
-
+add_device = Template('$endpoint/devices/add/$hash')
 
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
@@ -45,16 +48,17 @@ def subscribe(client: mqtt_client):
 
         print(f"Received `{userdata}` `{msg.payload.decode()}` from `{msg.topic}` topic")
 
-    initial_boot(client)
+    topic=str(uuid.uuid4())
+    initial_boot(topic)
+    client.subscribe(topic)
     client.on_message = on_message
 
-def initial_boot(client):
-    topic = uuid.uuid4()
-    image = qrcode.make(str(topic))
+def initial_boot(topic):
+    data = json.dumps({"client_id": client_id, "topic": topic}).encode("utf-8")
+    image = qrcode.make(add_device.substitute(endpoint=url, hash=base64.b64encode(data).decode()))
     image.save("/tmp/codename.png")
+    resize("/tmp/codename.png")
     draw("/tmp/codename.png")
-
-    client.subscribe(topic)
 
 def run():
     client = connect_mqtt()
@@ -100,9 +104,8 @@ def deep_clean(cycles=3):
 
     print("Cleaning complete!")
 
-def render_text(code, output):
-    os.system(f'convert -density 90 -pointsize 72 label:{code} {output}')
-    os.system(f'convert {output} -resize 460 -gravity Center -extent 600x448 {output}')
+def resize(filepath):
+    os.system(f'convert {filepath} -resize 460 -gravity Center -extent 600x448 {filepath}')
 
 def draw(image_path):
     inky = Inky()
