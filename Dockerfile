@@ -1,4 +1,4 @@
-FROM arm32v7/python:3
+FROM balenalib/raspberry-pi-debian-python
 
 WORKDIR /app
 
