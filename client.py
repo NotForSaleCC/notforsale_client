@@ -14,7 +14,7 @@ from inky.auto import auto
 from PIL import Image
 from inky.inky_uc8159 import Inky, CLEAN
 
-url = os.environ['URL']
+url = os.environ['WEB']
 broker = os.environ['BROKER']
 port = 1883
 # generate client ID with pub prefix randomly
