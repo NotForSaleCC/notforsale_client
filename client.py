@@ -5,8 +5,12 @@ import json
 import time
 import uuid
 import base64
+import re
 import qrcode
+import pdb
+import RPi.GPIO as GPIO
 
+from pyzbar import pyzbar
 from string import Template
 from paho.mqtt import client as mqtt_client
 # Inky
@@ -48,17 +52,26 @@ def subscribe(client: mqtt_client):
 
         print(f"Received `{userdata}` `{msg.payload.decode()}` from `{msg.topic}` topic")
 
-    topic=str(uuid.uuid4())
-    initial_boot(topic)
-    client.subscribe(topic)
+    initial_boot(client)
     client.on_message = on_message
 
-def initial_boot(topic):
-    data = json.dumps({"client_id": client_id, "topic": topic}).encode("utf-8")
-    image = qrcode.make(add_device.substitute(endpoint=url, hash=base64.b64encode(data).decode()))
-    image.save("/tmp/codename.png")
-    resize("/tmp/codename.png")
-    draw("/tmp/codename.png")
+def initial_boot(client):
+    print("initial_boot is initiated")
+    if os.path.isfile("./codename.png"):
+        img = Image.open('./codename.png')
+        data = pyzbar.decode(img)
+        hash = re.findall(r'add\/(.+)', data[0].data.decode('utf-8'))[0]
+        topic = json.loads(base64.b64decode(hash).decode())['topic']
+    else:
+        topic = str(uuid.uuid4())
+        data = json.dumps({"client_id": client_id, "topic": topic}).encode("utf-8")
+        image = qrcode.make(add_device.substitute(endpoint=url, hash=base64.b64encode(data).decode()))
+        image.save("./codename.png")
+        resize("./codename.png")
+        draw("./codename.png")
+    
+    print(f"subscribed to topic: {topic}")
+    client.subscribe(topic)
 
 def run():
     client = connect_mqtt()
@@ -118,5 +131,13 @@ def draw(image_path):
 
     print("drawing complete!")
 
+def handle_button(pin):
+    print("button pressed")
+    deep_clean(1)
+
 if __name__ == '__main__':
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    GPIO.add_event_detect(5, GPIO.FALLING, callback=handle_button, bouncetime=250)
+    
     run()

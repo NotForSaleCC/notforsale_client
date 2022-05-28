@@ -3,3 +3,4 @@ rpi.gpio==0.7.1
 paho-mqtt==1.6.1
 inky==1.3.2
 pillow==9.1.1
+pyzbar==0.1.9

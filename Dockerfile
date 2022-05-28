@@ -5,7 +5,10 @@ WORKDIR /app
 COPY requirements.txt ./
 COPY docker-entrypoint.sh /
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN apt-get update && \
+    apt-get install python3-opencv libzbar0 -y
+
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
