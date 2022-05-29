@@ -5,7 +5,8 @@ WORKDIR /app
 COPY requirements.txt ./
 COPY docker-entrypoint.sh /
 
-RUN apt-get install libzbar0 -y
+RUN apt-get update && \
+    apt-get install libzbar0 -y
 
 RUN pip install --no-cache-dir -r requirements.txt
 
