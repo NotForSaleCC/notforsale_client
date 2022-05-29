@@ -72,7 +72,6 @@ def create_qr(image_path):
     draw(image_path)
     return topic
 
-
 def initial_boot(client):
     print("initial_boot is initiated")
     if os.path.isfile("./codename.png"):
@@ -141,6 +140,8 @@ def draw(image_path):
 
     print("drawing complete!")
 
+def reset(img_path):
+    create_qr(img_path)
 
 # 5 - clear
 # 6 - draw existing QR code
@@ -148,7 +149,7 @@ def draw(image_path):
 FEATURES = {
     5: [deep_clean, 1],
     6: [draw, "./codename.png"],
-    16: [create_qr, "./codename.png"],
+    16: [reset, "./codename.png"],
 }
 
 def handle_button(pin):
