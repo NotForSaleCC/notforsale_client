@@ -1,31 +1,32 @@
 # python3.6
 
-import os
+import base64
 import json
+import os
+import pdb
+import qrcode
+import randomname
+import re
+import RPi.GPIO as GPIO
 import time
 import uuid
-import base64
-import re
-import qrcode
-import pdb
-import RPi.GPIO as GPIO
 
-from pyzbar import pyzbar
-from string import Template
-from paho.mqtt import client as mqtt_client
 # Inky
 from inky.auto import auto
-from PIL import Image
 from inky.inky_uc8159 import Inky, CLEAN
+from paho.mqtt import client as mqtt_client
+from PIL import Image
+from pyzbar import pyzbar
+from string import Template
 
-url = os.environ['WEB']
+# generate client ID with pub prefix randomly
+add_device = Template('$endpoint/devices/add/$hash')
 broker = os.environ['BROKER']
 port = 1883
-# generate client ID with pub prefix randomly
-client_id = 'python-mqtt'
-username = os.environ['USERNAME']
+client_id = randomname.get_name()
 password = os.environ['PASSWORD']
-add_device = Template('$endpoint/devices/add/$hash')
+url = os.environ['WEB']
+username = os.environ['USERNAME']
 
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
@@ -139,5 +140,5 @@ if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(5, GPIO.FALLING, callback=handle_button, bouncetime=250)
-    
+
     run()
