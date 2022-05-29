@@ -19,14 +19,14 @@ from PIL import Image
 from pyzbar import pyzbar
 from string import Template
 
-# generate client ID with pub prefix randomly
-add_device = Template('$endpoint/devices/add/$hash')
-broker = os.environ['BROKER']
-port = 1883
-client_id = randomname.get_name()
-password = os.environ['PASSWORD']
-url = os.environ['WEB']
-username = os.environ['USERNAME']
+ADD_DEVICE = Template('$endpoint/devices/add/$hash')
+BROKER = os.environ['BROKER']
+PORT = 1883
+CLIENT_ID = randomname.get_name()
+PASSWORD = os.environ['PASSWORD']
+URL = os.environ['WEB']
+USERNAME = os.environ['USERNAME']
+BUTTONS = [5,6,16,24]
 
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
@@ -35,10 +35,10 @@ def connect_mqtt() -> mqtt_client:
         else:
             print("Failed to connect, return code %d\n", rc)
 
-    client = mqtt_client.Client(client_id)
-    client.username_pw_set(username, password)
+    client = mqtt_client.Client(CLIENT_ID)
+    client.username_pw_set(USERNAME, PASSWORD)
     client.on_connect = on_connect
-    client.connect(broker, port)
+    client.connect(BROKER, PORT)
     return client
 
 def subscribe(client: mqtt_client):
@@ -46,8 +46,8 @@ def subscribe(client: mqtt_client):
         data = json.loads(msg.payload.decode())
         if data["action"] == "draw":
             os.system("curl -L %s -o /tmp/original.png" % data["image"])
-            os.system("convert /tmp/original.png -resize 460 -gravity Center -extent 600x448 /tmp/resized.png")
-            draw("/tmp/resized.png")
+            resize("/tmp/original.png")
+            draw("/tmp/original.png")
         elif data["action"] == "clear":
             deep_clean(1)
 
@@ -56,20 +56,29 @@ def subscribe(client: mqtt_client):
     initial_boot(client)
     client.on_message = on_message
 
+def decode_qr(image_path):
+    img = Image.open(image_path)
+    data = pyzbar.decode(img)
+    hash = re.findall(r'add\/(.+)', data[0].data.decode('utf-8'))[0]
+    topic = json.loads(base64.b64decode(hash).decode())['topic']
+    return topic
+
+def create_qr(image_path):
+    topic = str(uuid.uuid4())
+    data = json.dumps({"client_id": CLIENT_ID, "topic": topic}).encode("utf-8")
+    image = qrcode.make(ADD_DEVICE.substitute(endpoint=URL, hash=base64.b64encode(data).decode()))
+    image.save(image_path)
+    resize(image_path)
+    draw(image_path)
+    return topic
+
+
 def initial_boot(client):
     print("initial_boot is initiated")
     if os.path.isfile("./codename.png"):
-        img = Image.open('./codename.png')
-        data = pyzbar.decode(img)
-        hash = re.findall(r'add\/(.+)', data[0].data.decode('utf-8'))[0]
-        topic = json.loads(base64.b64decode(hash).decode())['topic']
+        topic = decode_qr("./codename.png")
     else:
-        topic = str(uuid.uuid4())
-        data = json.dumps({"client_id": client_id, "topic": topic}).encode("utf-8")
-        image = qrcode.make(add_device.substitute(endpoint=url, hash=base64.b64encode(data).decode()))
-        image.save("./codename.png")
-        resize("./codename.png")
-        draw("./codename.png")
+        topic = create_qr("./codename.png")
     
     print(f"subscribed to topic: {topic}")
     client.subscribe(topic)
@@ -132,13 +141,25 @@ def draw(image_path):
 
     print("drawing complete!")
 
+
+# 5 - clear
+# 6 - draw existing QR code
+# 16 - draw a new QR code
+FEATURES = {
+    5: [deep_clean, 1],
+    6: [draw, "./codename.png"],
+    16: [create_qr, "./codename.png"],
+}
+
 def handle_button(pin):
-    print("button pressed")
-    deep_clean(1)
+    print("button pressed %d" % pin)
+    feature = FEATURES[pin]
+    feature[0](feature[1])
 
 if __name__ == '__main__':
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(5, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(5, GPIO.FALLING, callback=handle_button, bouncetime=250)
+    GPIO.setup(BUTTONS, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+    for pin in BUTTONS:
+        GPIO.add_event_detect(pin, GPIO.FALLING, callback=handle_button, bouncetime=250)
 
     run()
