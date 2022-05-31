@@ -27,6 +27,7 @@ PASSWORD = os.environ['PASSWORD']
 URL = os.environ['WEB']
 USERNAME = os.environ['USERNAME']
 BUTTONS = [5,6,16,24]
+PWD = os.environ['PWD']
 
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
@@ -74,10 +75,10 @@ def create_qr(image_path):
 
 def initial_boot(client):
     print("initial_boot is initiated")
-    if os.path.isfile("./codename.png"):
-        topic = decode_qr("./codename.png")
+    if os.path.isfile(os.path.join(PWD, "codename.png")):
+        topic = decode_qr(os.path.join(PWD,"codename.png"))
     else:
-        topic = create_qr("./codename.png")
+        topic = create_qr(os.path.join(PWD,"codename.png"))
     
     print(f"subscribed to topic: {topic}")
     client.subscribe(topic)
@@ -148,8 +149,8 @@ def reset(img_path):
 # 16 - draw a new QR code
 FEATURES = {
     5: [deep_clean, 1],
-    6: [draw, "./codename.png"],
-    16: [reset, "./codename.png"],
+    6: [draw, os.path.join(PWD, "codename.png")],
+    16: [reset, os.path.join(PWD, "codename.png")],
 }
 
 def handle_button(pin):
