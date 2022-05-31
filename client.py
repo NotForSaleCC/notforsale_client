@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import pdb
+import sys
 import qrcode
 import randomname
 import re
@@ -143,13 +144,19 @@ def draw(image_path):
 def reset(img_path):
     create_qr(img_path)
 
+def stop(msg):
+    print(msg)
+    sys.exit()
+
 # 5 - clear
 # 6 - draw existing QR code
 # 16 - draw a new QR code
+# 24 - stop
 FEATURES = {
     5: [deep_clean, 1],
     6: [draw, "./codename.png"],
     16: [reset, "./codename.png"],
+    24: [stop, "Stop execution"]
 }
 
 def handle_button(pin):
